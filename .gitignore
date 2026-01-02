@@ -141,4 +141,8 @@ dist
 appstate.json
 
 # Config with sensitive data (use git update-index --skip-worktree config.json)
-# config.json
+config.json
+
+# Update temp files
+temp/
+*.backup.*

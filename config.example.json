@@ -5,7 +5,7 @@
   },
   "paths": {
     "appstate": "./appstate.json",
-    "commands": "./commands"
+    "commands": "./scripts/commands"
   },
   "api": {
     "forceLogin": true,
@@ -25,5 +25,9 @@
   "permissions": {
     "owner": "YOUR_OWNER_ID",
     "admins": []
+  },
+  "github": {
+    "owner": "dongp06",
+    "repo": "AURABOT"
   }
 }

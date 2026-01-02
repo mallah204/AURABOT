@@ -37,6 +37,7 @@ export interface ICommandConfig {
   aliases?: string[];
   role?: CommandRole;
   cooldown?: number;
+  type?: string | string[]; // Event types để xử lý (ví dụ: "log:thread-icon", ["log:subscribe", "log:unsubscribe"])
 }
 
 export interface ApiOptions {
@@ -95,15 +96,29 @@ export interface IEventParams {
   Threads: typeof import('../database/controllers/threadController').Threads;
 }
 
+export interface IEventRunParams {
+  api: IFCAU_API;
+  event: ThreadEventType;
+  config: ICommandConfig;
+  Users: typeof import('../database/controllers/userController').Users;
+  Threads: typeof import('../database/controllers/threadController').Threads;
+}
+
 export interface ICommand {
   config: ICommandConfig;
-  run: (params: IRunParams) => Promise<void> | void;
+  run: (params: IRunParams | IEventRunParams) => Promise<void> | void;
 
+  onLoad?: () => Promise<void> | void;
   handleReply?: (params: IHandleParams) => Promise<void> | void;
   handleReaction?: (params: IHandleParams) => Promise<void> | void;
   handleChat?: (params: IChatParams) => Promise<void> | void;
   handleEvent?: (params: IEventParams) => Promise<void> | void;
 }
+
+// Type guard để kiểm tra xem params có phải là IEventRunParams không
+export const isEventRunParams = (params: IRunParams | IEventRunParams): params is IEventRunParams => {
+  return 'event' in params && (params.event as any).type === 'event';
+};
 
 declare global {
   // eslint-disable-next-line no-var
