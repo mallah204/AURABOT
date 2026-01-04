@@ -317,7 +317,7 @@ Mọi đóng góp đều được chào đón! Hãy:
 
 - 🐛 **Báo lỗi**: [GitHub Issues](https://github.com/dongp06/AURABOT/issues)
 - 💬 **Thảo luận**: [GitHub Discussions](https://github.com/dongp06/AURABOT/discussions)
-- 📧 **Email**: (Thêm email nếu có)
+- 📧 **Email**: minhdong.contact@gmail.com
 
 ## 🎯 Roadmap
 
