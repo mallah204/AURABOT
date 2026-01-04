@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { ApiOptions } from '../types';
 import { logger } from './utils/logger';
+import { loadEnvConfig, type EnvConfig } from './config/env';
 
 interface OwnerNoPrefixConfig {
   all?: boolean;
@@ -36,21 +37,79 @@ interface BotConfig {
   adminBox?: boolean | Record<string, boolean>;
   antiINBOX?: boolean;
   ownerNoPrefix?: boolean | string[] | OwnerNoPrefixConfig;
+  github?: {
+    owner: string;
+    repo: string;
+  };
 }
 
 const CONFIG_PATH = path.resolve(__dirname, '../config.json');
 
+// Try to load from .env first, fallback to config.json
 const loadConfig = (): BotConfig => {
+  // Check if .env exists or USE_ENV is set
+  const envPath = path.resolve(__dirname, '../.env');
+  const useEnv = process.env.USE_ENV === 'true' || fs.existsSync(envPath);
+
+  if (useEnv) {
+    try {
+      const env = loadEnvConfig();
+      const config: BotConfig = {
+        bot: {
+          prefix: env.BOT_PREFIX,
+          name: env.BOT_NAME
+        },
+        paths: {
+          appstate: env.APPSTATE_PATH,
+          commands: env.COMMANDS_DIR,
+          events: env.EVENTS_DIR
+        },
+        api: {
+          forceLogin: env.API_FORCE_LOGIN,
+          listenEvents: env.API_LISTEN_EVENTS,
+          logLevel: env.API_LOG_LEVEL,
+          selfListen: env.API_SELF_LISTEN
+        },
+        externalApi: env.EXTERNAL_API_URL ? {
+          url: env.EXTERNAL_API_URL,
+          key: env.EXTERNAL_API_KEY || ''
+        } : undefined,
+        logger: {
+          level: env.LOG_LEVEL,
+          enableColors: env.LOG_ENABLE_COLORS,
+          enableTimestamp: env.LOG_ENABLE_TIMESTAMP
+        },
+        permissions: {
+          owner: env.OWNER_ID,
+          admins: env.ADMIN_IDS
+        },
+        adminOnly: env.ADMIN_ONLY,
+        adminBox: env.ADMIN_BOX,
+        antiINBOX: env.ANTI_INBOX,
+        ownerNoPrefix: env.OWNER_NO_PREFIX,
+        github: {
+          owner: env.GITHUB_OWNER,
+          repo: env.GITHUB_REPO
+        }
+      };
+      logger.info('✅ Đã load config từ .env');
+      return config;
+    } catch (error) {
+      logger.warn('⚠️ Lỗi load .env, fallback về config.json:', error);
+    }
+  }
+
+  // Fallback to config.json
   if (!fs.existsSync(CONFIG_PATH)) {
     logger.error(`❌ Không tìm thấy file config.json tại: ${CONFIG_PATH}`);
-    logger.error('Vui lòng tạo file config.json trước khi chạy bot!');
+    logger.error('Vui lòng tạo file config.json hoặc .env trước khi chạy bot!');
     throw new Error(`Config file not found: ${CONFIG_PATH}`);
   }
 
   try {
     const configData = fs.readFileSync(CONFIG_PATH, 'utf8');
     const config = JSON.parse(configData);
-    logger.info('✅ Đã load config từ file');
+    logger.info('✅ Đã load config từ file config.json');
     return config;
   } catch (error) {
     logger.error('❌ Lỗi đọc config file:', error);

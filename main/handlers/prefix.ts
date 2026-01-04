@@ -9,6 +9,7 @@ import { createMessageHelper } from '../utils/message';
 import { hasPermission } from '../utils/permissions';
 import { checkCommandPermission } from '../utils/permissionsExtended';
 import { createMessageHelper as createHelper } from '../utils/message';
+import { checkRateLimit } from '../utils/rateLimit';
 
 export const handlePrefixCommand = async (
   api: IFCAU_API,
@@ -26,6 +27,14 @@ export const handlePrefixCommand = async (
 
   if (command) {
     try {
+      // Check rate limit
+      const rateLimitCheck = checkRateLimit(event, commandName);
+      if (!rateLimitCheck.allowed) {
+        const messageHelper = createHelper(api, event);
+        await messageHelper.send(rateLimitCheck.reason || '⏳ Bạn đang spam quá nhanh!');
+        return true;
+      }
+
       const permCheck = await checkCommandPermission(api, command, event, {
         adminOnly: botConfig.adminOnly,
         adminBox: botConfig.adminBox,

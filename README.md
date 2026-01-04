@@ -1,121 +1,110 @@
-# 🤖 AURABOT
+# 🤖 AURABOT - Facebook Chat Bot LTS v1.0.0
 
-AURABOT là một Facebook Chat Bot được xây dựng bằng TypeScript với hệ thống quản lý lệnh linh hoạt và dễ mở rộng.
+![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
+![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)
+![Status](https://img.shields.io/badge/status-LTS-success.svg)
 
-## ✨ Tính năng
+> **AURABOT** là một Facebook Chat Bot được xây dựng bằng TypeScript với hệ thống quản lý lệnh linh hoạt, ổn định và đủ tính năng để sử dụng lâu dài.
 
-- 🎯 **Hệ thống lệnh mạnh mẽ**: Quản lý lệnh theo danh mục, hỗ trợ alias và kiểm tra quyền
-- 🔧 **Dễ dàng mở rộng**: Cấu trúc module rõ ràng, dễ thêm lệnh mới
-- 💾 **Database tích hợp**: Sử dụng Sequelize với SQLite để lưu trữ dữ liệu
-- 📝 **Logging system**: Hệ thống log đầy đủ với màu sắc và timestamp
-- 🛡️ **Permission system**: Hệ thống phân quyền cho owner và admin
-- ⚡ **Hot reload**: Hỗ trợ load/unload lệnh mà không cần restart bot
-- 🎨 **Event handlers**: Xử lý nhiều loại sự kiện (message, reaction, typing, presence, etc.)
+## ✨ Tính năng nổi bật
+
+### 🚀 Core & Performance
+- ⚡ **SQLite WAL Mode**: Tối ưu hiệu năng đọc/ghi song song
+- 🛡️ **Rate Limiting & Anti-Spam**: Bảo vệ bot khỏi spam và checkpoint
+- 📨 **Message Queue**: Quản lý hàng đợi tin nhắn để tránh spam
+- 🔧 **Environment Variables**: Hỗ trợ `.env` với validation bằng Zod
+- 🛠️ **Global Error Handler**: Xử lý lỗi toàn cục và graceful shutdown
+
+### 🎮 Tính năng phong phú
+- 📥 **Media Downloader**: Tải video từ TikTok, YouTube, Facebook
+- 💰 **Economy System**: Banking, Gambling (Tài xỉu, Bầu cua), Rob system
+- 👥 **Group Management**: Anti-out, Anti-change-info, Warn system
+- 🤖 **AI Integration**: Tích hợp Gemini AI để chat thông minh
+- 🎨 **Rank Card**: Tạo card rank đẹp mắt với Canvas
+- 📄 **Paginated Menu**: Menu lệnh có phân trang
+
+### 💻 Developer Experience
+- 📝 **Winston Logger**: Logging chuyên nghiệp với log rotation
+- 🐳 **Docker Support**: Dockerfile và docker-compose.yml sẵn sàng
+- ✅ **Unit Tests**: Jest setup với test examples
+- 📚 **Comprehensive Docs**: Tài liệu đầy đủ và dễ hiểu
 
 ## 📋 Yêu cầu
 
-- Node.js >= 16.x
-- npm hoặc yarn
-- TypeScript >= 5.0.0
+- **Node.js** >= 18.x
+- **npm** hoặc **yarn**
+- **TypeScript** >= 5.0.0
+- **Docker** (tùy chọn, nếu dùng Docker)
 
-## 🚀 Cài đặt
+## 🚀 Cài đặt nhanh
 
-### Cách 1: Sử dụng setup script (Khuyến nghị)
+### Cách 1: Sử dụng Docker (Khuyến nghị)
 
-1. **Clone repository**
 ```bash
-git clone <repository-url>
+# Clone repository
+git clone https://github.com/dongp06/AURABOT.git
 cd AURABOT
+
+# Copy và chỉnh sửa .env
+cp env.example .env
+# Chỉnh sửa .env với thông tin của bạn
+
+# Build và chạy
+docker-compose up -d
 ```
-
-2. **Chạy setup script**
-```bash
-# Windows
-setup.bat
-
-# Linux/Mac
-chmod +x setup.sh
-./setup.sh
-
-# Hoặc dùng npm (tự động chọn script phù hợp)
-npm run setup
-```
-
-Script sẽ tự động:
-- ✅ Kiểm tra Node.js và npm
-- ✅ Cài đặt dependencies
-- ✅ Tạo `config.json` từ `config.example.json`
-- ✅ Thiết lập git để bảo vệ API key
-- ✅ Hướng dẫn các bước tiếp theo
-
-3. **Chỉnh sửa config.json**
-   - Mở file `config.json` và thêm:
-     - `externalApi.key`: API key của bạn
-     - `permissions.owner`: Owner ID của bạn
-     - Các cấu hình khác nếu cần
 
 ### Cách 2: Cài đặt thủ công
 
-1. **Clone repository**
 ```bash
-git clone <repository-url>
+# Clone repository
+git clone https://github.com/dongp06/AURABOT.git
 cd AURABOT
-```
 
-2. **Cài đặt dependencies**
-```bash
+# Cài đặt dependencies
 npm install
-```
 
-3. **Cấu hình bot**
-   - Copy `config.example.json` thành `config.json`:
-     ```bash
-     # Windows
-     copy config.example.json config.json
+# Cấu hình
+cp env.example .env
+# Hoặc copy config.example.json thành config.json
 
-     # Linux/Mac
-     cp config.example.json config.json
-     ```
-   - Chỉnh sửa file `config.json`:
-     - Đặt `prefix` cho bot (mặc định: `!`)
-     - Thêm `owner` ID của bạn
-     - Thêm `externalApi.key` (API key của bạn)
-     - Cấu hình các thông số khác nếu cần
+# Chỉnh sửa .env hoặc config.json
+# - Thêm OWNER_ID
+# - Thêm GEMINI_API_KEY (tùy chọn)
+# - Cấu hình các thông số khác
 
-   - **Bảo vệ API key khỏi commit** (quan trọng!):
-     ```bash
-     # Windows
-     scripts\setup-git.bat
-
-     # Linux/Mac
-     chmod +x scripts/setup-git.sh
-     ./scripts/setup-git.sh
-     ```
-
-     Lệnh này sẽ khiến Git bỏ qua thay đổi trong `config.json`, giúp bạn giữ API key local mà không commit lên repository.
-
-     **Lưu ý**: Nếu bạn đã commit `config.json` trước đó, hãy chạy lệnh trên để bảo vệ key của bạn.
-
-4. **Chạy bot lần đầu**
-```bash
-# Development mode (với hot reload)
-npm run dev
-
-# Production mode
-npm start
-```
-
-5. **Đăng nhập Facebook**
-   - Khi chạy bot lần đầu, bạn sẽ cần đăng nhập Facebook
-   - Bot sẽ tự động tạo file `appstate.json` sau khi đăng nhập thành công
-
-# Build TypeScript
-npm run build
+# Chạy bot
+npm run dev  # Development mode
+# hoặc
+npm start    # Production mode
 ```
 
 ## ⚙️ Cấu hình
 
-File `config.json` chứa các cấu hình chính:
+### Sử dụng .env (Khuyến nghị)
+
+Tạo file `.env` từ `env.example`:
+
+```env
+# Bot Configuration
+BOT_PREFIX=!
+BOT_NAME=AURABOT
+
+# Permissions
+OWNER_ID=YOUR_OWNER_ID
+ADMIN_IDS=
+
+# AI Configuration (optional)
+GEMINI_API_KEY=your_gemini_api_key
+
+# Logger
+LOG_LEVEL=info
+```
+
+### Sử dụng config.json (Legacy)
+
+File `config.json` vẫn được hỗ trợ để tương thích ngược:
 
 ```json
 {
@@ -123,162 +112,177 @@ File `config.json` chứa các cấu hình chính:
     "prefix": "!",
     "name": "AURABOT"
   },
-  "paths": {
-    "appstate": "./appstate.json",
-    "commands": "./commands"
-  },
-  "api": {
-    "forceLogin": true,
-    "listenEvents": true,
-    "logLevel": "error",
-    "selfListen": false
-  },
-  "logger": {
-    "level": "info",
-    "enableColors": true,
-    "enableTimestamp": true
-  },
   "permissions": {
-    "owner": "502275138",
+    "owner": "YOUR_OWNER_ID",
     "admins": []
   }
 }
 ```
 
-### Các thông số quan trọng:
-
-- **prefix**: Ký tự prefix cho lệnh (ví dụ: `!`, `.`, `/`)
-- **owner**: Facebook UID của chủ bot
-- **admins**: Mảng UID của các admin (có thể để trống)
-- **logger.level**: Mức độ log (`info`, `warn`, `error`, `debug`)
-
 ## 📁 Cấu trúc dự án
 
 ```
 AURABOT/
-├── commands/           # Thư mục chứa các lệnh
-│   ├── admin/         # Lệnh dành cho admin
-│   ├── fun/           # Lệnh giải trí
-│   └── system/        # Lệnh hệ thống
-├── database/          # Database models và controllers
-│   ├── models/        # Sequelize models
-│   └── controllers/   # Database controllers
-├── src/               # Source code chính
-│   ├── handlers/      # Event handlers
-│   ├── hooks/         # Hooks system
-│   ├── utils/         # Utilities
-│   ├── bot.ts         # Bot initialization
-│   ├── client.ts      # Command client
-│   ├── config.ts      # Config loader
-│   └── main.ts        # Entry point
-├── config.json        # File cấu hình
-├── index.ts           # Entry point
-└── package.json       # Dependencies
+├── main/                    # Source code chính
+│   ├── config/             # Config management
+│   │   └── env.ts          # Environment variables với Zod validation
+│   ├── database/           # Database
+│   │   ├── models/         # Sequelize models
+│   │   ├── controllers/    # Database controllers
+│   │   └── sequelize.ts    # SQLite với WAL mode
+│   ├── handlers/           # Event handlers
+│   ├── utils/              # Utilities
+│   │   ├── rateLimit.ts    # Rate limiting system
+│   │   ├── messageQueue.ts # Message queue
+│   │   ├── ai.ts           # Gemini AI integration
+│   │   └── loggerWinston.ts # Winston logger
+│   └── Aura.ts             # Entry point với error handling
+├── scripts/
+│   ├── commands/           # Commands
+│   │   ├── admin/          # Admin commands
+│   │   ├── fun/            # Fun commands
+│   │   ├── media/          # Media downloader commands
+│   │   └── system/          # System commands
+│   └── events/             # Event handlers
+├── logs/                   # Log files (auto-generated)
+├── storage/                # Database storage
+├── Dockerfile              # Docker configuration
+├── docker-compose.yml      # Docker Compose
+└── jest.config.js          # Jest test configuration
+```
+
+## 🎮 Danh sách lệnh
+
+### 📥 Media Commands
+- `!tiktok <link>` - Tải video TikTok không logo
+- `!youtube <link> [audio]` - Tải video/audio YouTube
+- `!facebook <link>` - Tải video Facebook
+
+### 💰 Economy Commands
+- `!balance` - Xem số dư tiền và EXP
+- `!daily` - Nhận phần thưởng hàng ngày
+- `!bank [deposit|withdraw|balance] <số tiền>` - Ngân hàng (gửi tiết kiệm, rút tiền)
+- `!gamble [taixiu|baucua] <số tiền>` - Cờ bạc (Tài xỉu, Bầu cua)
+- `!rob [@tag]` - Ăn trộm tiền (có thể bị bắt vào tù)
+
+### 👥 Group Management
+- `!warn [@tag] [lý do]` - Cảnh báo thành viên (3 warn = auto kick)
+- `!unwarn [@tag]` - Xóa cảnh báo
+- `!antiset [anti-out|anti-change-info] [on|off]` - Bật/tắt tính năng Anti
+
+### 🤖 AI & Fun
+- `!ask <câu hỏi>` - Hỏi AI (Gemini)
+- `!rank [@tag]` - Xem rank card với EXP và level
+- `!help [lệnh|trang]` - Menu lệnh có phân trang
+
+### 🔧 System Commands
+- `!info` - Thông tin về bot
+- `!ping` - Kiểm tra độ trễ
+- `!uptime` - Thời gian bot đã chạy
+
+### 👑 Admin Commands
+- `!ban @user` - Ban người dùng
+- `!kick @user` - Kick người dùng
+- `!load <tên-lệnh>` - Load lệnh mới
+- `!unload <tên-lệnh>` - Unload lệnh
+- `!eval <code>` - Chạy code JavaScript
+
+> Xem đầy đủ danh sách lệnh bằng `!help` hoặc `!help <số trang>`
+
+## 🧪 Testing
+
+```bash
+# Chạy tests
+npm test
+
+# Watch mode
+npm run test:watch
+
+# Coverage
+npm run test:coverage
+```
+
+## 🐳 Docker Deployment
+
+### Build image
+```bash
+docker build -t aurabot .
+```
+
+### Run với docker-compose
+```bash
+docker-compose up -d
+```
+
+### Xem logs
+```bash
+docker-compose logs -f
 ```
 
 ## 📝 Tạo lệnh mới
 
-Tạo file mới trong thư mục `commands/<category>/<tên-lệnh>.ts`:
+Tạo file mới trong `scripts/commands/<category>/<tên-lệnh>.ts`:
 
 ```typescript
-import { ICommand, IRunParams } from '../../types';
+import { ICommand, IRunParams } from '@types';
 
 const command: ICommand = {
-    config: {
-        name: "tên-lệnh",
-        version: "1.0.0",
-        author: "Tên bạn",
-        description: "Mô tả lệnh",
-        category: "Category",
-        aliases: ["alias1", "alias2"], // Tùy chọn
-        usages: "!tên-lệnh [args]",   // Tùy chọn
-        role: 0 // 0: User, 1: Admin, 2: Owner
-    },
+  config: {
+    name: 'tên-lệnh',
+    version: '1.0.0',
+    author: 'Tên bạn',
+    description: 'Mô tả lệnh',
+    category: 'Category',
+    usages: '!tên-lệnh [args]',
+    role: 0 // 0: User, 1: Admin, 2: Owner
+  },
 
-    run: async ({ api, event, args, send, reply, react, Users, Threads }: IRunParams) => {
-        // Code xử lý lệnh ở đây
-        await send("Hello World!");
-    }
+  run: async (params: IRunParams) => {
+    const { api, event, args, send, reply, react, Users, Threads } = params;
+
+    // Code xử lý lệnh
+    await send('Hello World!');
+  }
 };
 
 export = command;
 ```
 
-### Các helper functions có sẵn:
-
-- `send(message)`: Gửi tin nhắn
-- `reply(message)`: Reply tin nhắn
-- `react(emoji)`: Thêm reaction
-- `Users.getData(uid)`: Lấy dữ liệu user
-- `Threads.getData(tid)`: Lấy dữ liệu thread
-
-## 🎮 Lệnh có sẵn
-
-### System Commands
-- `!help [lệnh]` - Xem danh sách lệnh hoặc thông tin chi tiết
-- `!info` - Thông tin về bot
-- `!ping` - Kiểm tra độ trễ
-- `!uptime` - Thời gian bot đã chạy
-
-### Admin Commands
-- `!ban @user` - Ban người dùng khỏi nhóm
-- `!kick @user` - Kick người dùng khỏi nhóm
-- `!load <tên-lệnh>` - Load lệnh mới
-- `!unload <tên-lệnh>` - Unload lệnh
-- `!uid` - Lấy UID của người dùng
-- `!adduser <uid>` - Thêm người dùng vào nhóm
-- `!eval <code>` - Chạy code JavaScript
-- `!shell <command>` - Chạy shell command
-
-### Fun Commands
-- `!balance` - Xem số dư tiền và EXP
-- `!daily` - Nhận phần thưởng hàng ngày
-- `!coin` - Tung đồng xu
-- `!dice` - Tung xúc xắc
-- `!random [min] [max]` - Số ngẫu nhiên
-- `!choose <option1> | <option2>` - Chọn ngẫu nhiên
-- `!calc <biểu thức>` - Tính toán
-- `!weather <địa điểm>` - Xem thời tiết
-- `!quote` - Câu nói ngẫu nhiên
-- `!top` - Bảng xếp hạng
-- `!bot` - Bot trả lời tự động
-- `!autosad` - Tự động phản ứng buồn
-
-## 🔧 Development
-
-### Scripts có sẵn:
+## 🔧 Development Scripts
 
 ```bash
-# Chạy bot ở chế độ development (hot reload)
+# Development mode (hot reload)
 npm run dev
 
-# Chạy bot ở chế độ production
+# Production mode
 npm start
 
-# Build TypeScript sang JavaScript
+# Build TypeScript
 npm run build
+
+# Run tests
+npm test
+
+# Test coverage
+npm run test:coverage
 ```
 
-### TypeScript Configuration
+## 📊 Database
 
-Project sử dụng TypeScript với cấu hình strict mode. File `tsconfig.json` đã được cấu hình sẵn.
+Bot sử dụng **SQLite với WAL mode** để tối ưu hiệu năng. Database được tự động tạo khi chạy lần đầu.
 
-## 🗄️ Database
+### Models:
+- **User**: Thông tin người dùng (money, exp, bank, jail status)
+- **Thread**: Thông tin nhóm (settings, warns, previous members)
 
-Bot sử dụng SQLite với Sequelize ORM. Database được tự động tạo khi chạy lần đầu.
+## 🛡️ Security & Best Practices
 
-### Models có sẵn:
-
-- **User**: Lưu thông tin người dùng (money, exp, etc.)
-- **Thread**: Lưu thông tin nhóm chat
-
-## 🔐 Permissions
-
-Hệ thống phân quyền 3 cấp:
-
-- **Role 0**: User thường
-- **Role 1**: Admin nhóm
-- **Role 2**: Owner bot
+- ✅ Rate limiting để tránh spam
+- ✅ Message queue để quản lý tin nhắn
+- ✅ Environment variables với validation
+- ✅ Global error handling
+- ✅ Log rotation để quản lý logs
+- ✅ Docker support cho deployment
 
 ## 📄 License
 
@@ -288,21 +292,48 @@ MIT License - Xem file [LICENSE](LICENSE) để biết thêm chi tiết.
 
 **DongDev**
 
-## ⚠️ Lưu ý
+- GitHub: [@dongp06](https://github.com/dongp06)
+- Repository: [AURABOT](https://github.com/dongp06/AURABOT)
 
-- Bot sử dụng Facebook Chat API không chính thức, có thể bị Facebook chặn
-- Không chia sẻ file `appstate.json` - đây là thông tin đăng nhập của bạn
-- Sử dụng bot một cách có trách nhiệm
-- Tuân thủ Terms of Service của Facebook
+## ⚠️ Lưu ý quan trọng
+
+- ⚠️ Bot sử dụng Facebook Chat API không chính thức, có thể bị Facebook chặn
+- 🔒 **KHÔNG** chia sẻ file `appstate.json` - đây là thông tin đăng nhập của bạn
+- 🚫 Sử dụng bot một cách có trách nhiệm
+- 📋 Tuân thủ Terms of Service của Facebook
+- 🔑 Bảo vệ API keys và không commit lên Git
 
 ## 🤝 Đóng góp
 
-Mọi đóng góp đều được chào đón! Hãy tạo issue hoặc pull request.
+Mọi đóng góp đều được chào đón! Hãy:
+
+1. Fork repository
+2. Tạo feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to branch (`git push origin feature/AmazingFeature`)
+5. Mở Pull Request
 
 ## 📞 Hỗ trợ
 
-Nếu gặp vấn đề, hãy tạo issue trên GitHub repository.
+- 🐛 **Báo lỗi**: [GitHub Issues](https://github.com/dongp06/AURABOT/issues)
+- 💬 **Thảo luận**: [GitHub Discussions](https://github.com/dongp06/AURABOT/discussions)
+- 📧 **Email**: (Thêm email nếu có)
+
+## 🎯 Roadmap
+
+- [x] Core optimization (WAL mode, Rate limiting)
+- [x] Media downloaders
+- [x] Economy system nâng cao
+- [x] Group management features
+- [x] AI integration
+- [x] Docker support
+- [x] Unit tests
+- [ ] More media sources
+- [ ] Advanced AI features
+- [ ] Web dashboard
 
 ---
 
 **Made with ❤️ by DongDev**
+
+*Phiên bản LTS v1.0.0 - Ổn định, tối ưu và đủ tính năng để sử dụng lâu dài*

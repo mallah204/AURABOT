@@ -69,6 +69,10 @@ const command: ICommand = {
         const packageJson = require('../../../package.json');
         const currentVersion = packageJson.version || '0.0.0';
 
+        // Import compareVersions
+        const { compareVersions } = require('@main/utils/updater');
+        const versionCompare = compareVersions(currentVersion, release.tag_name);
+
         let message = `📦 Release mới nhất:\n`;
         message += `• Tag: ${release.tag_name}\n`;
         message += `• Tên: ${release.name || 'N/A'}\n`;
@@ -76,10 +80,14 @@ const command: ICommand = {
         message += `• Ngày: ${new Date(release.published_at).toLocaleString('vi-VN')}\n`;
         message += `\n📌 Version hiện tại: ${currentVersion}\n`;
 
-        if (release.tag_name.replace(/^v/i, '') === currentVersion) {
+        if (!versionCompare.hasUpdate) {
           message += `\n✅ Đã ở phiên bản mới nhất!`;
         } else {
-          message += `\n🔄 Có phiên bản mới! Dùng !update để cập nhật.`;
+          const versionDiff = versionCompare.diff
+            ? ` (${versionCompare.diff === 'major' ? '⚠️ Major' : versionCompare.diff === 'minor' ? '🔄 Minor' : '🔧 Patch'} update)`
+            : '';
+          message += `\n🔄 Có phiên bản mới${versionDiff}!\n`;
+          message += `💡 Dùng !update ${channel} để cập nhật.`;
         }
 
         await send(message);

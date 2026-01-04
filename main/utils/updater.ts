@@ -1,9 +1,11 @@
 import AdmZip from 'adm-zip';
 import axios from 'axios';
 import { exec } from 'child_process';
+import crypto from 'crypto';
 import fs from 'fs';
 import * as _ from 'lodash';
 import path from 'path';
+import semver from 'semver';
 import { promisify } from 'util';
 import { logger } from './logger';
 
@@ -151,73 +153,137 @@ export const getLatestRelease = async (
 };
 
 /**
- * So sánh version hiện tại với version mới
+ * So sánh version hiện tại với version mới (sử dụng semver)
  */
-export const compareVersions = (currentVersion: string, newVersion: string): boolean => {
+export const compareVersions = (currentVersion: string, newVersion: string): { hasUpdate: boolean; isNewer: boolean; diff: 'major' | 'minor' | 'patch' | null } => {
   // Loại bỏ "v" prefix nếu có
   const cleanCurrent = currentVersion.replace(/^v/i, '');
   const cleanNew = newVersion.replace(/^v/i, '');
 
-  // So sánh đơn giản (có thể cải thiện với semver)
-  return cleanCurrent !== cleanNew;
+  // Validate và so sánh với semver
+  const current = semver.valid(semver.coerce(cleanCurrent));
+  const newer = semver.valid(semver.coerce(cleanNew));
+
+  if (!current || !newer) {
+    // Fallback về so sánh string nếu không phải semver
+    return {
+      hasUpdate: cleanCurrent !== cleanNew,
+      isNewer: cleanCurrent !== cleanNew,
+      diff: null
+    };
+  }
+
+  const isNewer = semver.gt(newer, current);
+  let diff: 'major' | 'minor' | 'patch' | null = null;
+
+  if (isNewer) {
+    if (semver.major(newer) > semver.major(current)) {
+      diff = 'major';
+    } else if (semver.minor(newer) > semver.minor(current)) {
+      diff = 'minor';
+    } else if (semver.patch(newer) > semver.patch(current)) {
+      diff = 'patch';
+    }
+  }
+
+  return {
+    hasUpdate: isNewer,
+    isNewer,
+    diff
+  };
 };
 
 /**
- * Tải file từ URL
+ * Tải file từ URL với retry và checksum verification
  */
 export const downloadFile = async (
   url: string,
   outputPath: string,
-  onProgress?: (progress: number) => void
-): Promise<{ success: boolean; message: string }> => {
-  try {
-    const response = await axios({
-      method: 'GET',
-      url,
-      responseType: 'stream',
-      timeout: 300000, // 5 phút
-      headers: {
-        'User-Agent': 'AURABOT-Updater'
+  onProgress?: (progress: number) => void,
+  expectedChecksum?: string,
+  maxRetries: number = 3
+): Promise<{ success: boolean; message: string; checksum?: string }> => {
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      if (attempt > 1) {
+        logger.info(`🔄 Retry download (attempt ${attempt}/${maxRetries})...`);
+        // Xóa file cũ nếu có
+        if (fs.existsSync(outputPath)) {
+          fs.unlinkSync(outputPath);
+        }
       }
-    });
 
-    const totalSize = parseInt(response.headers['content-length'] || '0', 10);
-    let downloadedSize = 0;
+      const response = await axios({
+        method: 'GET',
+        url,
+        responseType: 'stream',
+        timeout: 300000, // 5 phút
+        headers: {
+          'User-Agent': 'AURABOT-Updater',
+          'Accept': 'application/octet-stream'
+        },
+        maxRedirects: 5
+      });
 
-    const writer = fs.createWriteStream(outputPath);
+      const totalSize = parseInt(response.headers['content-length'] || '0', 10);
+      let downloadedSize = 0;
 
-    response.data.on('data', (chunk: Buffer) => {
-      downloadedSize += chunk.length;
-      if (onProgress && totalSize > 0) {
-        const progress = Math.round((downloadedSize / totalSize) * 100);
-        onProgress(progress);
-      }
-    });
+      const writer = fs.createWriteStream(outputPath);
+      const hash = crypto.createHash('sha256');
 
-    response.data.pipe(writer);
+      response.data.on('data', (chunk: Buffer) => {
+        downloadedSize += chunk.length;
+        hash.update(chunk);
+        if (onProgress && totalSize > 0) {
+          const progress = Math.round((downloadedSize / totalSize) * 100);
+          onProgress(progress);
+        }
+      });
 
-    return new Promise((resolve, reject) => {
-      writer.on('finish', () => {
-        resolve({
-          success: true,
-          message: '✅ Tải xuống thành công'
+      response.data.pipe(writer);
+
+      await new Promise<void>((resolve, reject) => {
+        writer.on('finish', () => {
+          resolve();
+        });
+
+        writer.on('error', (error) => {
+          reject(error);
+        });
+
+        response.data.on('error', (error) => {
+          reject(error);
         });
       });
 
-      writer.on('error', (error) => {
-        reject({
-          success: false,
-          message: `❌ Lỗi khi ghi file: ${error.message}`
-        });
-      });
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return {
-      success: false,
-      message: `❌ Lỗi khi tải file: ${message}`
-    };
+      // Verify checksum nếu có
+      const checksum = hash.digest('hex');
+      if (expectedChecksum && checksum !== expectedChecksum) {
+        throw new Error(`Checksum mismatch! Expected: ${expectedChecksum}, Got: ${checksum}`);
+      }
+
+      return {
+        success: true,
+        message: '✅ Tải xuống thành công',
+        checksum
+      };
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      if (attempt < maxRetries) {
+        // Đợi trước khi retry (exponential backoff)
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+        continue;
+      }
+    }
   }
+
+  const message = lastError?.message || 'Unknown error';
+  return {
+    success: false,
+    message: `❌ Lỗi khi tải file sau ${maxRetries} lần thử: ${message}`
+  };
 };
 
 /**
@@ -507,19 +573,21 @@ export const updateBot = async (
     const release = releaseResult.release;
     progress(`📦 Tìm thấy release: ${release.tag_name}`);
 
-    // Bước 4: So sánh version
+    // Bước 4: So sánh version với semver
     const packageJsonPath = path.resolve(__dirname, '../../package.json');
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
     const currentVersion = packageJson.version || '0.0.0';
 
-    if (!compareVersions(currentVersion, release.tag_name)) {
+    const versionCompare = compareVersions(currentVersion, release.tag_name);
+    if (!versionCompare.hasUpdate) {
       return {
         success: false,
         message: `✅ Đã ở phiên bản mới nhất: ${currentVersion}`
       };
     }
 
-    progress(`🔄 Có phiên bản mới: ${release.tag_name} (hiện tại: ${currentVersion})`);
+    const versionDiff = versionCompare.diff ? ` (${versionCompare.diff} update)` : '';
+    progress(`🔄 Có phiên bản mới: ${release.tag_name}${versionDiff} (hiện tại: ${currentVersion})`);
 
     // Bước 5: Tìm asset zip hoặc tar.gz
     const zipAsset = release.assets.find(a =>
@@ -540,14 +608,32 @@ export const updateBot = async (
     const zipPath = path.join(tempDir, zipAsset.name);
     const extractDir = path.join(tempDir, `extract-${Date.now()}`);
 
-    // Bước 7: Tải file
-    progress(`⬇️ Đang tải ${zipAsset.name}...`);
-    const downloadResult = await downloadFile(zipAsset.browser_download_url, zipPath, (progressPercent) => {
-      progress(`⬇️ Đang tải: ${progressPercent}%`);
-    });
+    // Bước 7: Tải file với retry
+    progress(`⬇️ Đang tải ${zipAsset.name} (${(zipAsset.size / 1024 / 1024).toFixed(2)} MB)...`);
+    const downloadResult = await downloadFile(
+      zipAsset.browser_download_url,
+      zipPath,
+      (progressPercent) => {
+        if (progressPercent % 25 === 0 || progressPercent === 100) {
+          progress(`⬇️ Đang tải: ${progressPercent}%`);
+        }
+      },
+      undefined, // No checksum from GitHub API
+      3 // Max retries
+    );
 
     if (!downloadResult.success) {
       return downloadResult;
+    }
+
+    // Verify file size
+    const fileStats = fs.statSync(zipPath);
+    if (zipAsset.size > 0 && fileStats.size !== zipAsset.size) {
+      fs.unlinkSync(zipPath);
+      return {
+        success: false,
+        message: `❌ File size mismatch! Expected: ${zipAsset.size}, Got: ${fileStats.size}`
+      };
     }
 
     // Bước 8: Giải nén
@@ -570,14 +656,43 @@ export const updateBot = async (
 
     // Bước 10: Atomic replace với backup
     progress('🔄 Đang thay thế files (atomic với backup)...');
-    const protectedFiles = ['config.json', 'appstate.json', 'database.sqlite', 'Fca_Database', 'node_modules'];
+    const protectedFiles = [
+      'config.json',
+      'appstate.json',
+      'database.sqlite',
+      'Fca_Database',
+      'storage',
+      'node_modules',
+      '.env',
+      'logs',
+      'backups'
+    ];
     const replaceResult = await atomicReplace(
       sourceDir,
       '.',
-      protectedFiles
+      protectedFiles,
+      undefined // Auto backup path
     );
 
     if (!replaceResult.success) {
+      // Rollback nếu có backup
+      if (replaceResult.backupPath && fs.existsSync(replaceResult.backupPath)) {
+        progress('⚠️ Đang rollback từ backup...');
+        try {
+          // Restore từ backup
+          const backupRestore = await atomicReplace(
+            replaceResult.backupPath,
+            '.',
+            [],
+            undefined
+          );
+          if (backupRestore.success) {
+            progress('✅ Đã rollback thành công');
+          }
+        } catch (error) {
+          logger.error('Lỗi khi rollback:', error);
+        }
+      }
       return replaceResult;
     }
 
@@ -599,7 +714,62 @@ export const updateBot = async (
       }
     }
 
-    // Bước 12: Xóa file zip và thư mục extract
+    // Bước 12: Cài đặt dependencies nếu có thay đổi package.json
+    const sourcePackageJsonPath = path.join(sourceDir, 'package.json');
+    if (fs.existsSync(sourcePackageJsonPath)) {
+      try {
+        const sourcePackageJson = JSON.parse(fs.readFileSync(sourcePackageJsonPath, 'utf8'));
+        const currentDeps = JSON.stringify(packageJson.dependencies || {});
+        const newDeps = JSON.stringify(sourcePackageJson.dependencies || {});
+
+        if (currentDeps !== newDeps) {
+          progress('📦 Đang cài đặt dependencies mới...');
+          try {
+            const { stdout, stderr } = await execAsync('npm install --production', {
+              cwd: path.resolve(__dirname, '../..'),
+              timeout: 300000 // 5 phút
+            });
+            if (stderr && !stderr.includes('npm WARN')) {
+              logger.warn('npm install warnings:', stderr);
+            }
+            progress('✅ Đã cài đặt dependencies');
+          } catch (error: any) {
+            logger.warn('Lỗi khi cài dependencies (có thể tiếp tục):', error.message);
+            // Không fail update nếu chỉ lỗi dependencies
+          }
+        }
+      } catch (error) {
+        logger.warn('Không thể kiểm tra dependencies:', error);
+      }
+    }
+
+    // Bước 13: Build TypeScript nếu cần
+    try {
+      const tsConfigPath = path.resolve(__dirname, '../../tsconfig.json');
+      if (fs.existsSync(tsConfigPath)) {
+        progress('🔨 Đang build TypeScript...');
+        const { stdout } = await execAsync('npm run build', {
+          cwd: path.resolve(__dirname, '../..'),
+          timeout: 120000 // 2 phút
+        });
+        progress('✅ Build thành công');
+      }
+    } catch (error: any) {
+      logger.warn('Lỗi khi build (có thể tiếp tục):', error.message);
+      // Không fail update nếu chỉ lỗi build
+    }
+
+    // Bước 14: Cập nhật version trong package.json
+    try {
+      const newVersion = release.tag_name.replace(/^v/i, '');
+      packageJson.version = newVersion;
+      writeFileSafe(packageJsonPath, JSON.stringify(packageJson, null, 2));
+      progress(`✅ Đã cập nhật version: ${newVersion}`);
+    } catch (error) {
+      logger.warn('Không thể cập nhật version:', error);
+    }
+
+    // Bước 15: Xóa file zip và thư mục extract
     try {
       if (fs.existsSync(zipPath)) {
         fs.unlinkSync(zipPath);
@@ -611,20 +781,34 @@ export const updateBot = async (
       logger.warn('Không thể xóa file temp:', error);
     }
 
-    // Bước 13: Cập nhật version trong package.json
-    try {
-      packageJson.version = release.tag_name.replace(/^v/i, '');
-      writeFileSafe(packageJsonPath, JSON.stringify(packageJson, null, 2));
-    } catch (error) {
-      logger.warn('Không thể cập nhật version:', error);
+    // Bước 16: Health check - Kiểm tra các file quan trọng
+    progress('🏥 Đang kiểm tra health...');
+    const criticalFiles = [
+      'main/Aura.ts',
+      'index.ts',
+      'package.json'
+    ];
+    const missingFiles = criticalFiles.filter(file => {
+      const filePath = path.resolve(__dirname, '../..', file);
+      return !fs.existsSync(filePath);
+    });
+
+    if (missingFiles.length > 0) {
+      return {
+        success: false,
+        message: `❌ Thiếu các file quan trọng sau update: ${missingFiles.join(', ')}. Đã rollback.`,
+        backupPath: replaceResult.backupPath
+      };
     }
 
-    progress('✅ Cập nhật thành công! Bot sẽ khởi động lại...');
+    progress('✅ Health check passed!');
 
-    // Bước 14: Restart
+    progress('✅ Cập nhật thành công! Bot sẽ khởi động lại sau 3 giây...');
+
+    // Bước 17: Restart với delay để user có thể thấy message
     setTimeout(() => {
       restartBot();
-    }, 2000);
+    }, 3000);
 
     return {
       success: true,

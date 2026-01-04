@@ -14,6 +14,7 @@ export const handleEvent = async (
   try {
     const settings = await Threads.getSettings(event.threadID);
     // Nếu eventNotifications bị tắt (false), bỏ qua tất cả event commands
+    // Mặc định là true (undefined hoặc không có = bật)
     if (settings.eventNotifications === false) {
       return;
     }

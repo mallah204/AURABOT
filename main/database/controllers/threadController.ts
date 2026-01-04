@@ -102,5 +102,64 @@ export const Threads = {
   getInfoData: async (threadID: string): Promise<Record<string, unknown>> => {
     const thread = await Threads.getData(threadID);
     return (thread.info as Record<string, unknown>) || {};
+  },
+
+  // Warn system
+  addWarn: async (threadID: string, userID: string, reason?: string): Promise<{ warns: number; maxWarns: number }> => {
+    const info = await Threads.getInfoData(threadID);
+    const warns = (info.warns as Record<string, number>) || {};
+    warns[userID] = (warns[userID] || 0) + 1;
+
+    const warnHistory = (info.warnHistory as Record<string, Array<{ reason?: string; timestamp: number }>>) || {};
+    if (!warnHistory[userID]) warnHistory[userID] = [];
+    warnHistory[userID].push({
+      reason,
+      timestamp: Date.now()
+    });
+
+    await Threads.updateInfo(threadID, { warns, warnHistory });
+
+    const maxWarns = (await Threads.getSettings(threadID)).maxWarns || 3;
+    return { warns: warns[userID], maxWarns };
+  },
+
+  getWarns: async (threadID: string, userID: string): Promise<number> => {
+    const info = await Threads.getInfoData(threadID);
+    const warns = (info.warns as Record<string, number>) || {};
+    return warns[userID] || 0;
+  },
+
+  clearWarns: async (threadID: string, userID: string): Promise<void> => {
+    const info = await Threads.getInfoData(threadID);
+    const warns = (info.warns as Record<string, number>) || {};
+    const warnHistory = (info.warnHistory as Record<string, any[]>) || {};
+    delete warns[userID];
+    delete warnHistory[userID];
+    await Threads.updateInfo(threadID, { warns, warnHistory });
+  },
+
+  // Anti-out: Store previous members
+  getPreviousMembers: async (threadID: string): Promise<string[]> => {
+    const info = await Threads.getInfoData(threadID);
+    return (info.previousMembers as string[]) || [];
+  },
+
+  setPreviousMembers: async (threadID: string, members: string[]): Promise<void> => {
+    await Threads.updateInfo(threadID, { previousMembers: members });
+  },
+
+  // Anti-change-info: Store previous name/icon
+  getPreviousName: async (threadID: string): Promise<string | null> => {
+    const thread = await Threads.getData(threadID);
+    return thread.name || null;
+  },
+
+  getPreviousIcon: async (threadID: string): Promise<string | null> => {
+    const info = await Threads.getInfoData(threadID);
+    return (info.previousIcon as string) || null;
+  },
+
+  setPreviousIcon: async (threadID: string, icon: string): Promise<void> => {
+    await Threads.updateInfo(threadID, { previousIcon: icon });
   }
 };

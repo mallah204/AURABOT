@@ -8,6 +8,10 @@ interface UserAttributes {
   gender: string;
   money: number;
   exp: number;
+  bank?: number;
+  lastRob?: number;
+  inJail?: boolean;
+  jailUntil?: number;
 }
 
 class User extends Model<UserAttributes> implements UserAttributes {
@@ -17,6 +21,10 @@ class User extends Model<UserAttributes> implements UserAttributes {
   public gender!: string;
   public money!: number;
   public exp!: number;
+  public bank?: number;
+  public lastRob?: number;
+  public inJail?: boolean;
+  public jailUntil?: number;
 }
 
 User.init({
@@ -43,6 +51,22 @@ User.init({
   },
   exp: {
     type: DataTypes.INTEGER,
+    defaultValue: 0
+  },
+  bank: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0
+  },
+  lastRob: {
+    type: DataTypes.BIGINT,
+    defaultValue: 0
+  },
+  inJail: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  jailUntil: {
+    type: DataTypes.BIGINT,
     defaultValue: 0
   }
 }, {

@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  aurabot:
+    build: .
+    container_name: aurabot
+    restart: unless-stopped
+    volumes:
+      # Persist appstate
+      - ./appstate.json:/app/appstate.json
+      # Persist database
+      - ./storage:/app/storage
+      # Persist logs
+      - ./logs:/app/logs
+      # Persist config (optional, can use env instead)
+      - ./config.json:/app/config.json:ro
+    environment:
+      # Override with .env file or set here
+      - NODE_ENV=production
+      - LOG_LEVEL=info
+    # Uncomment if you want to use .env file
+    # env_file:
+    #   - .env
+    networks:
+      - aurabot-network
+
+networks:
+  aurabot-network:
+    driver: bridge
